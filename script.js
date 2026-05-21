@@ -8,6 +8,7 @@ for (let i = 1; i <= 6; i++) {
 let userBalance = parseInt(localStorage.getItem('ngua_dua_balance')) || 1000;
 const betData = Array(15).fill(0); 
 let isMusicPlaying = false;
+let isSoundEnabled = true;
 const WIN_RATE = 12;
 
 const bettingGrid = document.getElementById('betting-grid');
@@ -49,17 +50,30 @@ function initAutoplayMusic() {
 document.addEventListener('click', initAutoplayMusic);
 
 function playBeepSound() {
+
+    if (!isSoundEnabled) return;
+
     try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
+
         const ctx = new AudioContext();
+
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine'; osc.frequency.setValueAtTime(850, ctx.currentTime); 
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(850, ctx.currentTime);
+
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12); 
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.start(); osc.stop(ctx.currentTime + 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+
     } catch(e) {}
 }
 
@@ -125,14 +139,37 @@ btnGuide.addEventListener('click', () => guideModal.classList.remove('hidden'));
 btnCloseGuide.addEventListener('click', () => guideModal.classList.add('hidden'));
 
 audioToggle.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    if (!isMusicPlaying) {
-        bgMusic.play().then(() => {
-            isMusicPlaying = true; iconSoundOn.classList.remove('hidden'); iconSoundOff.classList.add('hidden');
-        });
+
+    e.stopPropagation();
+
+    if (isSoundEnabled) {
+
+        // TẮT TOÀN BỘ ÂM THANH
+        isSoundEnabled = false;
+        isMusicPlaying = false;
+
+        bgMusic.pause();
+
+        soundStart.pause();
+        soundStart.currentTime = 0;
+
+        soundRace.pause();
+        soundRace.currentTime = 0;
+
+        iconSoundOn.classList.add('hidden');
+        iconSoundOff.classList.remove('hidden');
+
     } else {
-        bgMusic.pause(); isMusicPlaying = false;
-        iconSoundOn.classList.add('hidden'); iconSoundOff.classList.remove('hidden');
+
+        // BẬT LẠI ÂM THANH
+        isSoundEnabled = true;
+
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+        });
+
+        iconSoundOn.classList.remove('hidden');
+        iconSoundOff.classList.add('hidden');
     }
 });
 
@@ -154,8 +191,19 @@ function triggerCountdown() {
         if (count > 0) {
             countdownDiv.textContent = count; playBeepSound(); 
         } else if (count === 0) {
-            countdownDiv.textContent = "CHẠY!"; soundStart.play();
-            soundStart.onended = () => soundRace.play();
+            countdownDiv.textContent = "CHẠY!";
+
+if (isSoundEnabled) {
+
+    soundStart.play();
+
+    soundStart.onended = () => {
+
+        if (isSoundEnabled) {
+            soundRace.play();
+        }
+    };
+}
             startRaceLogic();
         } else {
             clearInterval(interval); countdownDiv.textContent = "";
